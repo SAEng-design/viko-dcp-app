@@ -94,6 +94,14 @@ def _commit(t: dict, rows: list[dict]):
     t["ver"] += 1           # new editor key -> editor starts clean from the committed rows
 
 
+def cb_editor_changed(tid: str):
+    """Save table edits (exclude ticks, notes, corrections) into the test straight away.
+    Streamlit discards a widget's state when it is not drawn, e.g. after switching to
+    another test hole, so edits must not be left living only in the editor."""
+    t = get_test(tid)
+    _commit(t, current_rows(t))
+
+
 def get_test(tid: str) -> dict:
     return next(t for t in ss.tests if t["id"] == tid)
 
@@ -328,6 +336,7 @@ with tab_site:
         st.data_editor(
             pd.DataFrame(t["readings"] or [], columns=list(DEFAULT_ROW)),
             key=_editor_key(t), num_rows="dynamic", hide_index=True, width="stretch",
+            on_change=cb_editor_changed, args=(tid,),
             column_config={
                 "blows": st.column_config.NumberColumn("Blows", min_value=1, step=1, default=5, width="small"),
                 "reading_mm": st.column_config.NumberColumn("Reading (mm)", step=1, format="%.0f"),
